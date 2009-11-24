@@ -1,11 +1,11 @@
 MultiTouchScreen for iPhone
 
 
-By David Petrie <david@davidpetrie.com>
+By David Petrie <www.davidpetrie.com>
 
 
-Multi Touch Screen is an Objective-c++ extension to the EAGLView, and is a wrapper for the multitouch functionality of the iPhone and iPod Touch. It was adapted from the "TouchScreen" class in the Oolong Engine.
+MultiTouchScreen is an Objective-C++ extension for EAGLView, and is a wrapper around the multitouch functionality of the iPhone and iPod Touch. It was adapted from the "TouchScreen" class in the Oolong Engine <www.oolongengine.com>.
 
-This class is intended for apps that need to synchronize user input with rendering, such as games. It is also useful for converting multitouch input into a generic format that can be used by classes that expect other forms of input (such as mouse input).
+This class is intended for apps that need to synchronize user input and rendering, such as games. It is also useful if you want to converting multitouch input into another form of input, such as mouse or trackball input.
 
-It is currently used in a game on the App Store called "Smashed". More detail can be found at <http://smashed.hackdirt.com>
+The library is currently used in a game on the iTunes App Store called "Smashed". More detail can be found at <http://smashed.hackdirt.com>
