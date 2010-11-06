@@ -294,7 +294,8 @@
 							<key>PBXSmartGroupTreeModuleOutlineStateSelectionKey</key>
 							<array>
 								<array>
-									<integer>20</integer>
+									<integer>4</integer>
+									<integer>2</integer>
 									<integer>1</integer>
 									<integer>0</integer>
 								</array>
@@ -337,7 +338,7 @@
 								<key>PBXProjectModuleGUID</key>
 								<string>1CE0B20306471E060097A5F4</string>
 								<key>PBXProjectModuleLabel</key>
-								<string>MultiTouchScreenController.cpp</string>
+								<string>MultiTouchScreen.mm</string>
 								<key>PBXSplitModuleInNavigatorKey</key>
 								<dict>
 									<key>Split0</key>
@@ -345,11 +346,11 @@
 										<key>PBXProjectModuleGUID</key>
 										<string>1CE0B20406471E060097A5F4</string>
 										<key>PBXProjectModuleLabel</key>
-										<string>MultiTouchScreenController.cpp</string>
+										<string>MultiTouchScreen.mm</string>
 										<key>_historyCapacity</key>
 										<integer>0</integer>
 										<key>bookmark</key>
-										<string>63266E251285068E00143E65</string>
+										<string>6326710312856C8900143E65</string>
 										<key>history</key>
 										<array>
 											<string>63B7CA6D10A2391400E709A5</string>
@@ -383,27 +384,27 @@
 											<string>63EEA48B11A291D70047F51E</string>
 											<string>63266C401284CF4C00143E65</string>
 											<string>63266C421284CF4C00143E65</string>
-											<string>63266C451284CF4C00143E65</string>
 											<string>63266C481284CF4C00143E65</string>
 											<string>63266C491284CF4C00143E65</string>
 											<string>63266C4C1284CF4C00143E65</string>
-											<string>63266CBF1284DDD100143E65</string>
 											<string>63266D461284E28E00143E65</string>
 											<string>63266D481284E28E00143E65</string>
 											<string>63266D491284E28E00143E65</string>
 											<string>63266D4A1284E28E00143E65</string>
 											<string>63266DD11284FD7E00143E65</string>
 											<string>63266E0F1285032900143E65</string>
-											<string>63266E1B1285068E00143E65</string>
-											<string>63266E1C1285068E00143E65</string>
-											<string>63266E1D1285068E00143E65</string>
-											<string>63266E1E1285068E00143E65</string>
-											<string>63266E1F1285068E00143E65</string>
-											<string>63266E201285068E00143E65</string>
-											<string>63266E211285068E00143E65</string>
-											<string>63266E221285068E00143E65</string>
 											<string>63266E231285068E00143E65</string>
-											<string>63266E241285068E00143E65</string>
+											<string>632670F812856C8900143E65</string>
+											<string>632670F912856C8900143E65</string>
+											<string>632670FA12856C8900143E65</string>
+											<string>632670FB12856C8900143E65</string>
+											<string>632670FC12856C8900143E65</string>
+											<string>632670FD12856C8900143E65</string>
+											<string>632670FE12856C8900143E65</string>
+											<string>632670FF12856C8900143E65</string>
+											<string>6326710012856C8900143E65</string>
+											<string>6326710112856C8900143E65</string>
+											<string>6326710212856C8900143E65</string>
 										</array>
 									</dict>
 									<key>SplitCount</key>
@@ -584,7 +585,7 @@
 	<key>StatusbarIsVisible</key>
 	<true/>
 	<key>TimeStamp</key>
-	<real>310707854.52427202</real>
+	<real>310733961.67573297</real>
 	<key>ToolbarDisplayMode</key>
 	<integer>1</integer>
 	<key>ToolbarIsVisible</key>

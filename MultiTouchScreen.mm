@@ -97,8 +97,6 @@ int GetTouchCount()
 				++TouchCount;
 				if (touchValues[i].touchPositions[j].TouchUp)
 				{
-					// Should be the last one; this "slot" is available again.
-					assert(j == touchValues[i].touchesCount - 1);
 					touchValues[i].uiTouchPtr = NULL;
 				}
 			}
