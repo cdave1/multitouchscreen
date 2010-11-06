@@ -18,10 +18,10 @@
 
 
 #import "Delegate.h"
-#include "MultiTouchScreenController.h"
+
 #include <sys/time.h> 
 #include "QuartzCore/QuartzCore.h"
-#include "TextureLoader.h"
+#include "MultiTouchScreenController.h"
 
 static MultiTouchScreenController * multiTouchScreenController = NULL;
 
@@ -33,8 +33,60 @@ static CFTimeInterval LastFPSUpdate;
 
 - (void) update
 {
-	if(multiTouchScreenController)
-		multiTouchScreenController->Draw();
+	if (!multiTouchScreenController) return;
+	
+	/**
+	 * We get the accumulated touch information from the multi touch screen
+	 * and pass each individual touchPosition_t instance to the controller.
+	 *
+	 * The receiver of the touch values does not know that the values were 
+	 * retrieved from the touch screen.
+	 *
+	 * If there was a controller that was built to accept mouse input and you
+	 * needed to adapt it to a multitouch environment without changing it, you 
+	 * would need to pass the touchInfo_t values through in such a way as 
+	 * to mimic mouse behavior.  In this case, one approach is to pass 
+	 * through touch values from the first touchInfo_t instance retrieved 
+	 * via GetTouchValues().  Another would be to pass through touch values
+	 * from the first touchInfo_t instance where "touchesCount" is greater
+	 * than zero (and ignore the rest).
+	 */
+	touchInfo_t *multiTouchValues = GetTouchValues();
+	if (multiTouchValues)
+	{
+		for (int i = 0; i < kMultiTouchMaxEntries; i++)
+		{
+			for (int j = 0; j < multiTouchValues[i].touchesCount; ++j)
+			{
+				touchPosition_t touchPosition = multiTouchValues[i].touchPositions[j];
+				
+				if (touchPosition.TouchDown)
+				{
+					multiTouchScreenController->HandleTouchDown(touchPosition.startPosition.x,
+																touchPosition.startPosition.y,
+																i);
+				}
+				
+				if (touchPosition.TouchMoved)
+				{
+					multiTouchScreenController->HandleTouchMoved(touchPosition.previousPosition.x,
+																 touchPosition.previousPosition.y,
+																 touchPosition.currentPosition.x,
+																 touchPosition.currentPosition.y,
+																 i);
+				}
+				
+				if (touchPosition.TouchUp)
+				{
+					multiTouchScreenController->HandleTouchUp(touchPosition.endPosition.x,
+															  touchPosition.endPosition.y,
+															  i);
+				}
+			}
+		}
+	}
+	
+	multiTouchScreenController->Draw();
 	
 	[multiTouchGLView swapBuffers];
 	

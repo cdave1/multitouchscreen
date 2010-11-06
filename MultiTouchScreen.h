@@ -22,39 +22,58 @@
  3. This notice may not be removed or altered from any source distribution.
  */
 
+#ifndef MULTI_TOUCH_SCREEN_H
+#define MULTI_TOUCH_SCREEN_H
+
 #import "EAGLView.h"
+
+// Uncomment this line to enable debug logging messages.
+//#define MULTI_TOUCH_SCREEN_DEBUG
+
 
 @class MultiTouchScreen;
 
-const int kMultiTouchScreenValues = 10;
+const int kMultiTouchMaxEntries = 10;
+const int kTouchPositionsBufferSize = 8;
 
-typedef struct touchInfo
+typedef struct touchCoordinate
 {
-	float LocationXTouchBegan;    // x and y coordinates where the touch began
-	float LocationYTouchBegan;
+	void Set(float _x, float _y) { x = _x; y = _y; }
 	
-	float LocationXTouchMovedPrevious;
-	float LocationYTouchMovedPrevious;
+	float x;
+	float y;
 	
-	float LocationXTouchMoved;      // x and y coordinates where the touch moved
-	float LocationYTouchMoved;
+} touchCoordinate_t;
+
+
+typedef struct touchPosition
+{
+	touchCoordinate_t startPosition;
+	touchCoordinate_t previousPosition;
+	touchCoordinate_t currentPosition;
+	touchCoordinate_t endPosition;
 	
 	NSTimeInterval TimeStamp;
 	
-	void * uiTouchPtr;
 	int TapCount;
 	
 	bool TouchDown;
 	bool TouchUp;
 	bool TouchMoved;
+} touchPosition_t;
+
+
+typedef struct touchSlot
+{
+	touchPosition_t touchPositions[kTouchPositionsBufferSize];
+	unsigned int touchesCount;
+	void * uiTouchPtr;
 } touchInfo_t;
 
 
 @interface MultiTouchScreen : EAGLView
 {
 @private
-	int CountTouchesBegan;
-	int CountTouchesMoved;
 	int TouchCount;
 	NSObject * renderLock;
 	NSObject * touchScreenLock;
@@ -63,15 +82,13 @@ typedef struct touchInfo
 	UIEvent * lastTouchMovedEvent;
 	UIEvent * lastTouchEndedEvent;
 	
-	touchInfo_t touchInfoValuesCopy[kMultiTouchScreenValues];
-	touchInfo_t touchInfoValues[kMultiTouchScreenValues];
+	touchInfo_t touchValuesCopy[kMultiTouchMaxEntries];
+	touchInfo_t touchValues[kMultiTouchMaxEntries];
 }
 
 @property (readwrite, assign) NSObject *renderLock;
 
 - (touchInfo_t *)GetTouchValues;
-- (int) GetCountTouchesBegan;
-- (int) GetCountTouchesMoved;
 - (int) GetTouchCount;
 
 @end
@@ -80,8 +97,7 @@ typedef struct touchInfo
 // C wrapper
 touchInfo_t * GetTouchValues();
 
-int GetCountTouchesBegan();
-
-int GetCountTouchesMoved();
-
 int GetTouchCount();
+
+
+#endif MULTI_TOUCH_SCREEN_H

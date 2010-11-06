@@ -16,87 +16,14 @@
  3. This notice may not be removed or altered from any source distribution.
  */
 
-/**
- * Demo iPhone app showing ftgles in action.
- */
-
 #include "MultiTouchScreenController.h"
 #include "TextureLoader.h"
+#import <string.h>
 
-static GLuint aTexture;
+static GLuint mouseTexture;
+static GLuint pathTexture;
 
-#define MAX_VERTEX_COUNT 16
-
-typedef struct DemoVertex 
-{
-	float xyz[3];
-	float st[2];
-	float rgba[4];
-} DemoVertex;
-
-static DemoVertex vertices[MAX_VERTEX_COUNT];
-static DemoVertex vertex;
-static GLenum currentPrimitive = GL_TRIANGLES;
-static int vertexCount = 0;
 static float screenWidth, screenHeight, contentScaleFactor;
-
-
-void demoGlBegin(GLenum prim)
-{
-	currentPrimitive = prim;
-	vertexCount = 0;
-	glVertexPointer(3, GL_FLOAT, sizeof(DemoVertex), vertices[0].xyz);
-	glTexCoordPointer(2, GL_FLOAT, sizeof(DemoVertex), vertices[0].st);
-	glColorPointer(4, GL_FLOAT, sizeof(DemoVertex), vertices[0].rgba);
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-	glEnableClientState(GL_COLOR_ARRAY);
-}
-
-
-void demoGlVertex3f(float x, float y, float z)
-{
-	if (vertexCount > MAX_VERTEX_COUNT) return;
-	vertex.xyz[0] = x;
-	vertex.xyz[1] = y;
-	vertex.xyz[2] = z;
-	vertices[vertexCount] = vertex;
-	vertexCount++;
-}
-
-
-void demoGlColor4f(float r, float g, float b, float a)
-{
-	vertex.rgba[0] = r;
-	vertex.rgba[1] = g;
-	vertex.rgba[2] = b;
-	vertex.rgba[3] = a;
-}
-
-
-void demoGlTexCoord2f(float s, float t)
-{
-	vertex.st[0] = s;
-	vertex.st[1] = t;
-}
-
-
-void demoGlEnd()
-{
-	if (vertexCount == 0) 
-	{
-		currentPrimitive = 0;
-		return;
-	}
-	glDrawArrays(currentPrimitive, 0, vertexCount);
-	vertexCount = 0;
-	currentPrimitive = 0;
-}
-
-
-void demoGlError(const char *source)
-{
-}
 
 
 MultiTouchScreenController::MultiTouchScreenController(const char* path, float width, float height, float scale)
@@ -105,11 +32,14 @@ MultiTouchScreenController::MultiTouchScreenController(const char* path, float w
 	screenWidth = contentScaleFactor * width;
 	screenHeight = contentScaleFactor * height;
 	
+	m_touchPointsCount = 0;
+	memset(m_touchPoints, 0, sizeof(m_touchPoints));
+	
 	glDepthFunc(GL_LEQUAL);
 	glClearDepthf(1.0);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	
-	LoadTexture("mousePoint.png", &aTexture);
+	LoadTexture("point_glow.png", &pathTexture);
 }
 
 
@@ -119,70 +49,151 @@ MultiTouchScreenController::~MultiTouchScreenController()
 }
 
 
-void MultiTouchScreenController::DrawTexturedQuad()
+void MultiTouchScreenController::HandleTouchDown(const float x, const float y, const float touchId)
 {
-	demoGlBegin(GL_TRIANGLE_STRIP);
-	glEnable(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, aTexture);
-	
-	demoGlVertex3f(-40.0f, -40.0f, 0.0f);
-	demoGlColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-	demoGlTexCoord2f(0, 1);
-	
-	demoGlVertex3f(-40.0f, 40.0f, 0.0f);
-	demoGlColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-	demoGlTexCoord2f(1, 0);
-	
-	demoGlVertex3f(40.0f, -40.0f, 0.0f);
-	demoGlColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-	demoGlTexCoord2f(0, 0);
-	
-	demoGlVertex3f(40.0f, 40.0f, 0.0f);
-	demoGlColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-	demoGlTexCoord2f(1, 1);
-	
-	demoGlEnd();
+	AddTouchPoint(x, y, touchId);
 }
 
 
-static float angle = 0.0f;
+void MultiTouchScreenController::HandleTouchMoved(const float prevX, const float prevY, 
+												  const float currX, const float currY, const float touchId)
+{
+	AddTouchPoint(currX, currY, touchId);
+}
+
+
+void MultiTouchScreenController::HandleTouchUp(const float x, const float y, const float touchId)
+{
+	AddTouchPoint(x, y, touchId);
+}
+
+
+void MultiTouchScreenController::AddTouchPoint(const float x, const float y, const int touchId)
+{
+	// HACK -- hard coded colours depending on the touch id.
+	color4_t color;
+	switch (touchId) 
+	{
+		case 0:
+			color4Set(color, 1.0f, 0.0f, 0.0f, 1.0f); // r
+			break;
+		case 1:
+			color4Set(color, 1.0f, 0.5f, 0.0f, 1.0f); // o
+			break;
+		case 2:
+			color4Set(color, 1.0f, 1.0f, 0.0f, 1.0f); // y
+			break;
+		case 3:
+			color4Set(color, 0.0f, 1.0f, 0.0f, 1.0f); // g
+			break;
+		case 4:
+			color4Set(color, 0.5f, 0.5f, 1.0f, 1.0f); // b
+			break;
+		case 5:
+			color4Set(color, 0.66f, 0.0f, 1.0f, 1.0f); // i
+			break;
+		case 6:
+			color4Set(color, 1.0f, 0.5f, 1.0f, 1.0f); // v
+			break;
+		case 7:
+			color4Set(color, 0.0f, 0.0f, 0.0f, 1.0f); // black
+			break;
+		case 8:
+			color4Set(color, 0.33f, 0.33f, 0.33f, 1.0f); // 33% grey
+			break;
+		case 9:
+			color4Set(color, 0.66f, 0.66f, 0.66f, 1.0f); // 66% grey
+			break;
+		default:
+			color4Set(color, 0.0f, 0.0f, 0.0f, 0.0f);
+			break;
+	}
+	
+	vec2Set(m_touchPoints[m_touchPointsCount].position, x, y);
+	color4SetC(m_touchPoints[m_touchPointsCount].color, color);
+	
+	m_touchPoints[m_touchPointsCount].on = true;
+	m_touchPoints[m_touchPointsCount].age = kTouchPointStartingAge;
+	
+	m_touchPointsCount = (m_touchPointsCount + 1) % kTouchPointsCount;
+}
+
+
 void MultiTouchScreenController::Draw()
 {
 	float halfScreenWidth = screenWidth * 0.5f;
 	float halfScreenHeight = screenHeight * 0.5f;
 	
-	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+	glClearColor(0.0f, 0.0f, 0.1f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
 	glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
 	glPushMatrix();
+	glRotatef(180.0f, 1.0f, 0.0f, 0.0f);
 	glOrthof(0.0f, screenWidth, 
-			 0.0f, screenHeight, 
-			 1000.0f, -1000.0f);
+			 0.0f, screenHeight,
+			 -1000.0f, 1000.0f);
 	
 	glMatrixMode(GL_MODELVIEW);
 	glPushMatrix();
-	glTranslatef(halfScreenWidth, halfScreenHeight, 0.0f);
 	
 	glDisable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+	
+	
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, pathTexture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	
+	for (int i = 0; i < kTouchPointsCount; ++i)
+	{
+		if (m_touchPoints[i].on)
+		{
+			DrawTouchPoint(m_touchPoints[i]);
+			m_touchPoints[i].age -= 0.02f;
+			m_touchPoints[i].color[3] = m_touchPoints[i].age / kTouchPointStartingAge;
+		}
+		
+		if (m_touchPoints[i].age <= 0.0f)
+		{
+			m_touchPoints[i].on = false;
+			m_touchPoints[i].age = 0.0f;
+		}
+	}
+	
 
-	DrawTexturedQuad();
-	
-	glPopMatrix();
-	
 	glDisable(GL_BLEND);
 	glEnable(GL_DEPTH_TEST);
+
+	glMatrixMode(GL_MODELVIEW);
+	glPopMatrix();
 	
 	glMatrixMode(GL_PROJECTION);
 	glPopMatrix();
-	
-	angle += 0.1f;
-	if (angle >= 360.0f) angle = 0.0f;
-	
-	//fonts[1]->FaceSize(faceSize);
-	//faceSize -= 1.0f;
-	//if (faceSize < 10) faceSize = 120;
 }
 
+
+void MultiTouchScreenController::DrawTouchPoint(const touchPoint_t& touch)
+{
+	gGlBegin(GL_TRIANGLE_STRIP);
+	gGlVertex3f(touch.position[0] - kTouchPointHalfWidth, touch.position[1] - kTouchPointHalfWidth, 0.0f);
+	gGlColor4f(touch.color[0], touch.color[1], touch.color[2], touch.color[3]);
+	gGlTexCoord2f(0, 1);
+	
+	gGlVertex3f(touch.position[0] - kTouchPointHalfWidth, touch.position[1] + kTouchPointHalfWidth, 0.0f);
+	gGlColor4f(touch.color[0], touch.color[1], touch.color[2], touch.color[3]);
+	gGlTexCoord2f(1, 0);
+	
+	gGlVertex3f(touch.position[0] + kTouchPointHalfWidth, touch.position[1] - kTouchPointHalfWidth, 0.0f);
+	gGlColor4f(touch.color[0], touch.color[1], touch.color[2], touch.color[3]);
+	gGlTexCoord2f(0, 0);
+	
+	gGlVertex3f(touch.position[0] + kTouchPointHalfWidth, touch.position[1] + kTouchPointHalfWidth, 0.0f);
+	gGlColor4f(touch.color[0], touch.color[1], touch.color[2], touch.color[3]);
+	gGlTexCoord2f(1, 1);
+	gGlEnd();
+	
+}

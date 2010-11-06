@@ -32,16 +32,6 @@ touchInfo_t * GetTouchValues()
 	return [idFrame GetTouchValues];
 }
 
-int GetCountTouchesBegan()
-{
-	return [idFrame GetCountTouchesBegan];
-}
-
-int GetCountTouchesMoved()
-{
-	return [idFrame GetCountTouchesMoved];
-}
-
 int GetTouchCount()
 {
 	return [idFrame GetTouchCount];
@@ -67,11 +57,9 @@ int GetTouchCount()
 	{
 		[self setMultipleTouchEnabled:YES];
 		
-		memset(touchInfoValues, 0, sizeof(touchInfoValues));
-		memset(touchInfoValuesCopy, 0, sizeof(touchInfoValuesCopy));
+		memset(touchValues, 0, sizeof(touchValues));
+		memset(touchValuesCopy, 0, sizeof(touchValuesCopy));
 		
-		CountTouchesBegan = 0;
-		CountTouchesMoved = 0;
 		TouchCount = 0;
 		
 		renderLock = nil;
@@ -95,62 +83,30 @@ int GetTouchCount()
 	TouchCount = 0;
 	
 	// Atomic copy
-	memcpy(touchInfoValuesCopy,
-		   touchInfoValues,
-		   sizeof(touchInfo_t) * kMultiTouchScreenValues);
+	memcpy(touchValuesCopy,
+		   touchValues,
+		   sizeof(touchInfo_t) * kMultiTouchMaxEntries);
 	
-	for (int i = 0; i < kMultiTouchScreenValues; ++i)
+	// Reset everything.
+	for (int i = 0; i < kMultiTouchMaxEntries; ++i)
 	{
-		if (touchInfoValuesCopy[i].uiTouchPtr != NULL)
+		if (touchValues[i].touchesCount > 0)
 		{
-			++TouchCount;
-		}
-	}
-	
-	// Reset finished touches - they will go out to the
-	// caller as Up on this call, but will be invisible
-	// on the following one.
-	for (int i = 0; i < kMultiTouchScreenValues; ++i)
-	{
-		if (touchInfoValues[i].uiTouchPtr != NULL)
-		{
-			if (touchInfoValues[i].TouchUp)
+			for (int j = 0; j < touchValues[i].touchesCount; ++j)
 			{
-				touchInfoValues[i].LocationXTouchBegan = 0.0;
-				touchInfoValues[i].LocationYTouchBegan = 0.0;
-				
-				touchInfoValues[i].LocationXTouchMovedPrevious = 0.0;
-				touchInfoValues[i].LocationYTouchMovedPrevious = 0.0;
-				touchInfoValues[i].LocationXTouchMoved         = 0.0;
-				touchInfoValues[i].LocationYTouchMoved         = 0.0;
-				
-				touchInfoValues[i].TimeStamp = 0.0;
-				
-				touchInfoValues[i].TouchDown  = false;
-				touchInfoValues[i].TouchUp    = false;
-				touchInfoValues[i].TouchMoved = false;
-				
-				touchInfoValues[i].TapCount = 0;
-				touchInfoValues[i].uiTouchPtr  = NULL;
+				++TouchCount;
+				if (touchValues[i].touchPositions[j].TouchUp)
+				{
+					// Should be the last one; this "slot" is available again.
+					assert(j == touchValues[i].touchesCount - 1);
+					touchValues[i].uiTouchPtr = NULL;
+				}
 			}
-			
-			touchInfoValues[i].LocationXTouchMovedPrevious = touchInfoValues[i].LocationXTouchMoved;
-			touchInfoValues[i].LocationYTouchMovedPrevious = touchInfoValues[i].LocationYTouchMoved;
 		}
+		touchValues[i].touchesCount = 0;
+		memset(touchValues[i].touchPositions, 0, sizeof(touchPosition_t) * kTouchPositionsBufferSize);
 	}
-	return touchInfoValuesCopy;
-}
-
-
-- (int) GetCountTouchesBegan
-{
-	return CountTouchesBegan;
-}
-
-
-- (int) GetCountTouchesMoved
-{
-	return CountTouchesMoved;
+	return touchValuesCopy;
 }
 
 
@@ -217,105 +173,101 @@ int GetTouchCount()
 
 - (void)StoreTouchInfo:(UITouch *)touch
 {
-	int     pos      = -1;
-	int     newPos   = -1;
+	int     pos = -1;
 	void * touchPtr = (void *)touch;
 	
 	CGPoint location     = [touch locationInView:self];
 	CGPoint prevLocation = [touch previousLocationInView:self];
 	
-	// Find a spot to store the info using the touch ID.
-	for (int i = 0; i < kMultiTouchScreenValues; ++i)
+	// Find an existing slot for this touch value.
+	for (int i = 0; i < kMultiTouchMaxEntries; ++i)
 	{
-		if (touchInfoValues[i].uiTouchPtr == touchPtr)
+		if (touchValues[i].uiTouchPtr == touchPtr)
 		{
 			pos = i;
-		}
-		else if (touchInfoValues[i].uiTouchPtr == 0)      // first empty spot
-		{
-			if (newPos == -1) newPos = i;
+			break;
 		}
 	}
 	
-	if (newPos == -1) newPos = 0;
-	
-	// Use the first empty spot if the touch is not in the list.
-	if (pos == -1) pos = newPos;
-	
-	touchInfoValues[pos].uiTouchPtr = touchPtr;
-	
-	if (touch.phase == UITouchPhaseCancelled)
+	// No exiting slot found. Find first empty slot.
+	if (pos == -1)
 	{
-#ifdef MULTI_TOUCH_SCREEN_DEBUG
-		NSLog(@"\t[TOUCH - CANCELLED] touch with id %d:\n", touchPtr);
-#endif
-		touchInfoValues[pos].LocationXTouchBegan = 0.0;
-		touchInfoValues[pos].LocationYTouchBegan = 0.0;
-		
-		touchInfoValues[pos].LocationXTouchMovedPrevious = 0.0;
-		touchInfoValues[pos].LocationYTouchMovedPrevious = 0.0;
-		touchInfoValues[pos].LocationXTouchMoved = 0.0;
-		touchInfoValues[pos].LocationYTouchMoved = 0.0;
-		
-		touchInfoValues[pos].TimeStamp = 0.0;
-		
-		touchInfoValues[pos].TouchDown  = false;
-		touchInfoValues[pos].TouchUp    = false;
-		touchInfoValues[pos].TouchMoved = false;
-		
-		touchInfoValues[pos].TapCount = 0;
-		touchInfoValues[pos].uiTouchPtr  = NULL;
-	}
-	else if (touch.phase == UITouchPhaseEnded)
-	{
-#ifdef MULTI_TOUCH_SCREEN_DEBUG
-		NSLog(@"\t[TOUCH - ENDED] touch with id %d:\n", touchPtr);
-#endif
-		touchInfoValues[pos].TapCount = [touch tapCount];
-		if ([touch timestamp] - touchInfoValues[pos].TimeStamp < 0.045)
+		for (int i = 0; i < kMultiTouchMaxEntries; ++i)
 		{
-			touchInfoValues[pos].TouchDown = true;
+			if (touchValues[i].uiTouchPtr == NULL)
+			{
+				pos = i;
+				touchValues[pos].uiTouchPtr = touchPtr;
+				break;
+			}
 		}
-		else
-		{
-			touchInfoValues[pos].TouchDown = false;
-		}
-		
-		touchInfoValues[pos].TouchUp    = true;
-		touchInfoValues[pos].TouchMoved = false;
 	}
-	else if (touch.phase == UITouchPhaseBegan)
+	
+	// No empty slots found. Means that there are more touches than 
+	// kMultiTouchMaxEntries.
+	if (pos == -1) return;
+	
+	touchPosition_t newTouchPosition;
+	memset(&newTouchPosition, 0, sizeof(touchPosition_t));
+	
+	if (touch.phase == UITouchPhaseBegan)
 	{
 #ifdef MULTI_TOUCH_SCREEN_DEBUG
-		NSLog(@"\t[TOUCH - BEGAN] touch with id %d:\n", touchPtr);
+		NSLog(@"\t[TOUCH - BEGAN] touch with id %p:\n", touchPtr);
 #endif
-		touchInfoValues[pos].LocationXTouchMovedPrevious = location.x;
-		touchInfoValues[pos].LocationYTouchMovedPrevious = location.y;
-		
-		touchInfoValues[pos].LocationXTouchBegan = location.x;
-		touchInfoValues[pos].LocationYTouchBegan = location.y;
-		touchInfoValues[pos].LocationXTouchMoved = location.x;
-		touchInfoValues[pos].LocationYTouchMoved = location.y;
-		
-		touchInfoValues[pos].TapCount  = [touch tapCount];
-		touchInfoValues[pos].TimeStamp = [touch timestamp];
-		
-		touchInfoValues[pos].TouchDown  = true;
-		touchInfoValues[pos].TouchMoved = false;
-		touchInfoValues[pos].TouchUp    = false;
+		newTouchPosition.currentPosition.Set(location.x, location.y);
+		newTouchPosition.startPosition.Set(location.x, location.y);
+		newTouchPosition.previousPosition.Set(location.x, location.y);
+		newTouchPosition.TapCount = [touch tapCount];
+		newTouchPosition.TimeStamp = [touch timestamp];
+		newTouchPosition.TouchDown = true;
+		newTouchPosition.TouchMoved = false;
+		newTouchPosition.TouchUp = false;
 	}
 	else if (touch.phase == UITouchPhaseMoved || touch.phase == UITouchPhaseStationary)
 	{
 #ifdef MULTI_TOUCH_SCREEN_DEBUG
-		NSLog(@"\t[TOUCH - MOVED] (%3.3f, %3.3f) touch with id %d:\n", location.x, location.y, touchPtr);
+		NSLog(@"\t[TOUCH - MOVED] (%3.3f, %3.3f) touch with id %p:\n", location.x, location.y, touchPtr);
 #endif
-		touchInfoValues[pos].LocationXTouchMoved = location.x;
-		touchInfoValues[pos].LocationYTouchMoved = location.y;
-		touchInfoValues[pos].TapCount            = [touch tapCount];
-		touchInfoValues[pos].TouchDown           = false;
-		touchInfoValues[pos].TouchMoved          = true;
-		touchInfoValues[pos].TouchUp             = false;
+		newTouchPosition.currentPosition.Set(location.x, location.y);
+		newTouchPosition.previousPosition.Set(prevLocation.x, prevLocation.y);
+		newTouchPosition.TapCount = [touch tapCount];
+		newTouchPosition.TouchDown = false;
+		newTouchPosition.TouchMoved = true;
+		newTouchPosition.TouchUp = false;
 	}
+	else if (touch.phase == UITouchPhaseEnded)
+	{
+#ifdef MULTI_TOUCH_SCREEN_DEBUG
+		NSLog(@"\t[TOUCH - ENDED] touch with id %p:\n", touchPtr);
+#endif
+		newTouchPosition.TapCount = [touch tapCount];
+		
+		newTouchPosition.previousPosition.Set(prevLocation.x, prevLocation.y);
+		newTouchPosition.endPosition.Set(location.x, location.y);
+		
+		newTouchPosition.TouchDown = false;
+		newTouchPosition.TouchMoved = false;
+		newTouchPosition.TouchUp = true;
+	}
+	else if (touch.phase == UITouchPhaseCancelled)
+	{
+#ifdef MULTI_TOUCH_SCREEN_DEBUG
+		NSLog(@"\t[TOUCH - CANCELLED] touch with id %p:\n", touchPtr);
+#endif
+		newTouchPosition.currentPosition.Set(0,0);
+		newTouchPosition.startPosition.Set(0,0);
+		newTouchPosition.previousPosition.Set(0,0);
+		newTouchPosition.endPosition.Set(0,0);
+		newTouchPosition.TapCount = 0;
+		newTouchPosition.TimeStamp = 0.0;
+		newTouchPosition.TouchDown = false;
+		newTouchPosition.TouchMoved = false;
+		newTouchPosition.TouchUp = false;
+	}
+	
+	touchValues[pos].touchPositions[touchValues[pos].touchesCount] = newTouchPosition;
+	touchValues[pos].touchesCount++;
 }
 
 

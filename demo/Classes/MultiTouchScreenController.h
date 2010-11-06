@@ -18,11 +18,34 @@
  
  */
 
+
+/**
+ * Demo iPhone app showing multi touch screen in action.
+ * 
+ * Each touch event produces a particle on the screen.  The particles
+ * are coloured according to the touch event they correspond to; the first
+ * touch will be coloured red, the second orange, and so forth.
+ */
+
 #ifndef MULTI_DEMO_CONTROLLER_H
 #define MULTI_DEMO_CONTROLLER_H
 
 #include <OpenGLES/ES1/gl.h>
 #include <OpenGLES/ES1/glext.h>
+#include "glesGlue.h"
+
+#define kTouchPointsCount 2048
+#define kTouchPointHalfWidth 10.0f
+#define kTouchPointStartingAge 10.0f
+
+typedef struct touchPoint
+{
+	vec2_t position;
+	color4_t color;
+	float age;
+	bool on;
+}
+touchPoint_t;
 
 
 class MultiTouchScreenController
@@ -32,22 +55,25 @@ public:
 	
 	~MultiTouchScreenController();
 	
-	void DrawTexturedQuad();
+	void HandleTouchDown(const float x, const float y, const float touchId);
+	
+	void HandleTouchMoved(const float prevX, const float prevY, const float currX, const float currY, const float touchId);
+	
+	void HandleTouchUp(const float x, const float y, const float touchId);
 	
 	void Draw();
+	
+private:
+	void AddTouchPoint(const float x, const float y, const int touchId);
+	
+	void DrawTouchPoint(const touchPoint_t& touch);
+	
+	touchPoint_t m_touchPoints[kTouchPointsCount];
+	
+	uint32_t m_touchPointsCount;
 };
 
 
-void demoGlBegin(GLenum prim);
 
-void demoGlVertex3f(float x, float y, float z);
-
-void demoGlColor4f(float r, float g, float b, float a);
-
-void demoGlTexCoord2f(float s, float t);
-
-void demoGlEnd();
-
-void demoGlError(const char *source);
 
 #endif
