@@ -83,24 +83,19 @@ int GetTouchCount()
 	TouchCount = 0;
 	
 	// Atomic copy
-	memcpy(touchValuesCopy,
-		   touchValues,
-		   sizeof(touchInfo_t) * kMultiTouchMaxEntries);
+	memcpy(touchValuesCopy, touchValues, sizeof(touchInfo_t) * kMultiTouchMaxEntries);
 	
-	// Reset everything.
+	// Any touch up mean that the touch is finished, so reset the touch pointer to NULL.
 	for (int i = 0; i < kMultiTouchMaxEntries; ++i)
 	{
-		if (touchValues[i].touchesCount > 0)
+		for (int j = 0; j < touchValues[i].touchesCount; ++j)
 		{
-			for (int j = 0; j < touchValues[i].touchesCount; ++j)
+			if (touchValues[i].touchPositions[j].TouchUp)
 			{
-				++TouchCount;
-				if (touchValues[i].touchPositions[j].TouchUp)
-				{
-					touchValues[i].uiTouchPtr = NULL;
-				}
+				touchValues[i].uiTouchPtr = NULL;
 			}
 		}
+		TouchCount += touchValues[i].touchesCount;
 		touchValues[i].touchesCount = 0;
 		memset(touchValues[i].touchPositions, 0, sizeof(touchPosition_t) * kTouchPositionsBufferSize);
 	}
@@ -116,56 +111,37 @@ int GetTouchCount()
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
 {
-	if (touchScreenLock == nil)
-	{
-		[self LoadTouches:touches];
-	}
-	else
-	{
-		@synchronized(touchScreenLock)
-		{
-			[self LoadTouches:touches];
-		}
-	}
+	[self LoadTouches:touches];
 }
 
 
 - (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event
 {
-	if (touchScreenLock == nil)
-	{
-		[self LoadTouches:touches];
-	}
-	else
-	{
-		@synchronized(touchScreenLock)
-		{
-			[self LoadTouches:touches];
-		}
-	}
+	[self LoadTouches:touches];
 }
 
 
 - (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
 {
-	if (touchScreenLock == nil)
-	{
-		[self LoadTouches:touches];
-	}
-	else
-	{
-		@synchronized(touchScreenLock)
-		{
-			[self LoadTouches:touches];
-		}
-	}
+	[self LoadTouches:touches];
 }
 
 
 - (void)LoadTouches:(NSSet *)touches
 {
-	for (UITouch* touch in [touches allObjects])
-		[self StoreTouchInfo:touch];
+	if (touchScreenLock)
+	{
+		@synchronized(touchScreenLock)
+		{
+			for (UITouch* touch in [touches allObjects])
+				[self StoreTouchInfo:touch];
+		}
+	}
+	else 
+	{
+		for (UITouch* touch in [touches allObjects])
+			[self StoreTouchInfo:touch];
+	}
 }
 
 
@@ -178,7 +154,7 @@ int GetTouchCount()
 	CGPoint prevLocation = [touch previousLocationInView:self];
 	
 	// Find an existing slot for this touch value.
-	for (int i = 0; i < kMultiTouchMaxEntries; ++i)
+	for (unsigned i = 0; i < kMultiTouchMaxEntries; ++i)
 	{
 		if (touchValues[i].uiTouchPtr == touchPtr)
 		{
@@ -190,7 +166,7 @@ int GetTouchCount()
 	// No exiting slot found. Find first empty slot.
 	if (pos == -1)
 	{
-		for (int i = 0; i < kMultiTouchMaxEntries; ++i)
+		for (unsigned i = 0; i < kMultiTouchMaxEntries; ++i)
 		{
 			if (touchValues[i].uiTouchPtr == NULL)
 			{
@@ -253,15 +229,6 @@ int GetTouchCount()
 #ifdef MULTI_TOUCH_SCREEN_DEBUG
 		NSLog(@"\t[TOUCH - CANCELLED] touch with id %p:\n", touchPtr);
 #endif
-		newTouchPosition.currentPosition.Set(0,0);
-		newTouchPosition.startPosition.Set(0,0);
-		newTouchPosition.previousPosition.Set(0,0);
-		newTouchPosition.endPosition.Set(0,0);
-		newTouchPosition.TapCount = 0;
-		newTouchPosition.TimeStamp = 0.0;
-		newTouchPosition.TouchDown = false;
-		newTouchPosition.TouchMoved = false;
-		newTouchPosition.TouchUp = false;
 	}
 	
 	touchValues[pos].touchPositions[touchValues[pos].touchesCount] = newTouchPosition;
